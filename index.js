@@ -1,34 +1,61 @@
-/* 
-1. Use the inquirer npm package to get user input.
-2. Use the qr-image npm package to turn the user entered URL into a QR code image.
-3. Create a txt file to save the user input using the native fs node module.
-*/
 import inquirer from "inquirer";
 import qr from "qr-image";
 import fs from "fs";
 
-inquirer
-  .prompt([
-    {
-      message: "Type in your URL: ",
-      name: "URL",
-    },
-  ])
-  .then((answers) => {
-    const url = answers.URL;
-    var qr_svg = qr.image(url);
-    qr_svg.pipe(fs.createWriteStream("qr_img.png"));
+// Function to generate QR code and save URL
+const generateQRCode = (url) => {
+  const qr_svg = qr.image(url);
+  qr_svg.pipe(fs.createWriteStream("qr_img.png"));
 
-    fs.writeFile("URL.txt", url, (err) => {
-      if (err) throw err;
-      console.log("The file has been saved!");
-    });
-  })
-  .catch((error) => {
-    if (error.isTtyError) {
-      // Prompt couldn't be rendered in the current environment
-    } else {
-      // Something else went wrong
-    }
+  fs.writeFile("URL.txt", url, (err) => {
+    if (err) throw err;
+    console.log("The file has been saved!");
   });
+};
 
+// Check if there's input from stdin (piped input)
+const stdin = process.stdin;
+stdin.setEncoding('utf-8');
+
+let input = '';
+
+stdin.on('data', function(chunk) {
+    input += chunk;
+});
+
+stdin.on('end', function() {
+    input = input.trim();
+    if (input) {
+        generateQRCode(input);
+    } else {
+        promptUser();
+    }
+});
+
+// Function to prompt the user for a URL
+const promptUser = () => {
+  inquirer
+    .prompt([
+      {
+        message: "Type in your URL: ",
+        name: "URL",
+        // default: "https://www.google.com",  // Default value is google.com
+      },
+    ])
+    .then((answers) => {
+      const url = answers.URL;
+      generateQRCode(url);
+    })
+    .catch((error) => {
+      if (error.isTtyError) {
+        console.error("Prompt couldn't be rendered in the current environment.");
+      } else {
+        console.error("Something went wrong:", error);
+      }
+    });
+};
+
+// If stdin isn't readable (i.e., no piped input), prompt the user
+if (!stdin.readable) {
+    promptUser();
+}
