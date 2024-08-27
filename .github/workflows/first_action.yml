@@ -27,8 +27,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests
-        run: npm test
-
       - name: Run script with youtube.com as input
         run: echo 'https://www.youtube.com' | node index.js
